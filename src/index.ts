@@ -1,7 +1,3 @@
-// id - 7ehsoahdkf34nksn2228y3skdhdflpo6a
-// secret - slfhdsnfsmi123sfkd98dg732ndspp1pksafdb98nksdf9u2nnfskd
-// endpoint - https://skdhfkanams083nsdnfksmamsf.s3.aws.com
-
 import express from "express";
 import cors from "cors";
 import simpleGit from "simple-git";
@@ -10,8 +6,15 @@ import { generate } from "./utils";
 import { getAllFiles } from "./file";
 import { uploadFile } from "./aws";
 import { createClient } from "redis";
+import { hasSubscribers, subscribe } from "diagnostics_channel";
+import { stat } from "fs";
+
+
 const publisher = createClient();
 publisher.connect();
+
+const subscriber = createClient();
+subscriber.connect();
 uploadFile(
   "dist/ouput/wesfd/package.json",
   "/Users/saagrrr21/vercel/dist/output/wesfd/package.json"
@@ -34,8 +37,21 @@ app.post("/deploy", async (req, res) => {
 
   // put this to S3
   publisher.lPush("build-queue", id);
+  publisher.hSet("status", id, "uploaded");
+
+  // const value = await publisher.hGet("status", id);
+
   res.json({
     id: id,
+  });
+});
+
+app.get("/status", async (req, res) => {
+  const id = req.query.id;
+  const response = await subscriber.hGet("status", id as string);
+
+  res.json({
+    status: response,
   });
 });
 
