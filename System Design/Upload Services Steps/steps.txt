@@ -1,0 +1,158 @@
+
+
+--------------------step1-----------------------------
+Install Node.js
+Official Page - https://nodejs.org/en/download
+
+--------------------step2-----------------------------
+
+Initialise an empty typescript project
+mkdir vercel
+cd vercel
+npm init -y
+npx tsc --init
+
+--------------------step3-----------------------------
+
+Basic typescript configuration
+Change rootDir  to src 
+Change outDir  to dist  for the pro
+
+--------------------step4-----------------------------
+
+Add express , redis , aws-sdk , simple-git , cors as dependencies
+npm install express @types/express redis aws-sdk simple-git cors
+
+--------------------step5-----------------------------
+
+Initialize a simple express app in index.ts listening on port 3000
+
+--------------------step6-----------------------------
+
+Initialise an endpoint that the user will hit and send the repo url as input
+import express from "express";
+import cors from "cors";
+import { generate } from "./utils";
+
+const app = express();
+app.use(cors())
+app.use(express.json());
+
+// POSTMAN
+app.post("/deploy", async (req, res) => {
+    const repoUrl = req.body.repoUrl;
+});
+
+app.listen(3000);
+
+--------------------step7-----------------------------
+
+Create a function that randomly generates an id for this session. Call it generate
+function generate() {
+	const subset = "123456789qwertyuiopasdfghjklzxcvbnm";
+	const length = 5;
+	const id = "";
+	for (let i = 0; i < length; i++) {
+		id += subset[Math.floor(Math.random() * subset.length)];
+	}
+	return id;
+}
+
+--------------------step8-----------------------------
+
+Use simple-git to clone the repo into a new folder (/out/id ).
+import express from "express";
+import cors from "cors";
+import simpleGit from "simple-git";
+import { generate } from "./utils";
+
+const app = express();
+app.use(cors())
+app.use(express.json());
+
+// POSTMAN
+app.post("/deploy", async (req, res) => {
+    const repoUrl = req.body.repoUrl;
+    const id = generate(); // asd12
+    await simpleGit().clone(repoUrl, `output/${id}`);
+
+    res.json({
+        id: id
+    })
+});
+
+app.listen(3000);
+
+--------------------step9-----------------------------
+
+Write a function that gets the paths of all the files in the /out/id folder
+import fs from "fs";
+import path from "path";
+
+export const getAllFiles = (folderPath: string) => {
+    let response: string[] = [];
+
+    const allFilesAndFolders = fs.readdirSync(folderPath);allFilesAndFolders.forEach(file => {
+        const fullFilePath = path.join(folderPath, file);
+        if (fs.statSync(fullFilePath).isDirectory()) {
+            response = response.concat(getAllFiles(fullFilePath))
+        } else {
+            response.push(fullFilePath);
+        }
+    });
+    return response;
+}
+
+--------------------step10-----------------------------
+
+Create an AWS account
+https://aws.amazon.com/
+
+--------------------step12-----------------------------
+
+Write a function that uploads a file given a path to S3
+import { S3 } from "aws-sdk";
+import fs from "fs";
+
+// replace with your own credentials
+const s3 = new S3({
+    accessKeyId: "7ea9c3f8c7f0f26f0d21c5ce99d1ad6a",
+    secretAccessKey: "b4df203781dd711223ce931a2d7ca269cdbf81bb530de4548474584951b798be",
+    endpoint: "https://e21220f4758c0870ba9c388712d42ef2.r2.cloudflarestorage.com"
+})
+
+// fileName => output/12321/src/App.jsx
+// filePath => /Users/sagarrr21/vercel/dist/output/12321/src/App.jsx
+export const uploadFile = async (fileName: string, localFilePath: string) => {
+    const fileContent = fs.readFileSync(localFilePath);
+    const response = await s3.upload({
+        Body: fileContent,
+        Bucket: "vercel",
+        Key: fileName,
+    }).promise();
+    console.log(response);
+}
+
+--------------------step13-----------------------------
+
+Iterate over all the files and upload them to S3 one by one (or together)
+const files = getAllFiles(path.join(__dirname, `output/${id}`));
+
+files.forEach(async file => {
+    await uploadFile(file.slice(__dirname.length + 1), file);
+})
+
+Start redis locally
+https://developer.redis.com/create/windows/
+
+--------------------step14-----------------------------
+
+Initialize a redis publisher
+import { createClient } from "redis";
+const publisher = createClient();
+publisher.connect();
+
+--------------------step15-----------------------------
+
+Use redis queues to push the uploadId in the queue
+publisher.lPush("build-queue", id);
