@@ -1,0 +1,93 @@
+
+Full System Architecture: Upload, Deploy, and Serve
+
+We’re designing a robust, scalable system that allows users to upload their code, build and deploy it, and serve it to users across the globe. This system is broken down into three distinct services, each with its own responsibilities and performance characteristics:
+
+
+1. Upload Service
+
+------------> Purpose:
+The Upload Service is responsible for fetching the user's project code from a GitHub repository and storing it in a cloud-based object store like Amazon S3.
+
+------------> Workflow:
+- The user provides a GitHub URL pointing to their project.
+- The Upload Service clones or downloads the repository contents.
+- These files are then uploaded to S3, which acts as a centralized storage system.
+- Once the upload is complete, the service generates a unique project ID and triggers the Deployment Service to begin building the project.
+
+------------> Characteristics:
+- Lightweight: This service mainly handles file transfers and doesn’t require heavy computation.
+- Stable: It doesn’t need autoscaling or high CPU resources.
+- Isolated: By keeping it separate from the build process, we ensure that large builds don’t slow down uploads for other users.
+
+---
+
+2. Deployment Service
+
+------------> Purpose <---------
+The Deployment Service takes the uploaded code and transforms it into static assets—HTML, CSS, and JavaScript—ready to be served by a browser.
+
+------------> Workflow <----------
+- It checks S3 to ensure the project code is available.
+- For frameworks like React, it runs build commands (e.g., `npm run build`) to compile the code.
+- The output is a set of static files: HTML, CSS, and JS.
+- These files are then re-uploaded to S3 in a separate location, ready for public access.
+
+------------>Characteristics <-----------
+- CPU-Intensive: Building modern web apps requires significant processing power.
+- Scalable: This service should be autoscaled to handle multiple builds in parallel.
+- Isolated: Keeping it separate from the Upload Service ensures that a heavy build doesn’t interfere with file uploads.
+
+
+3. Request Handler Service
+
+------------> Purpose <-------------
+This service is the public-facing layer that serves the deployed project to users around the world.
+
+------------> Workflow <----------
+- When a user visits a URL like `sagar21.vercel.app`, the Request Handler Service receives the request.
+- It fetches the corresponding static files from S3.
+- These files are returned to the user’s browser, allowing them to view and interact with the project.
+- A caching layer is added to reduce repeated requests to S3, improving performance and reducing costs.
+
+----------> Characteristics <---------------
+--- Global Reach: Should be optimized for low-latency access from anywhere in the world.
+--- Cached: Frequently accessed files are cached to avoid hitting S3 repeatedly.
+--- Fast: Designed for speed and reliability.
+
+
+
+-------------> Frequently Asked Questions <-------------
+
+Q: Why are Upload and Deployment services separated?
+-->  Uploading files is a simple task that doesn’t require much CPU. Building a project, on the other hand, is resource-heavy. Separating them ensures that a large build doesn’t slow down uploads for other users. It also allows us to scale each service independently based on its needs.
+
+
+
+Q: What does “building the project” mean?
+-->  For frameworks like React, the code you write isn’t directly usable by browsers. You typically run a command like `npm run build` to compile your code into static assets. This process bundles your components, optimizes performance, and outputs HTML, CSS, and JS files that browsers can understand.
+
+
+
+Q: Why can’t we serve React files directly to the browser?
+-->  Browsers don’t understand React code. They only understand HTML, CSS, and JavaScript. React is a JavaScript library that needs to be compiled before it can be used in a browser. Serving raw React files would result in errors or blank pages.
+
+
+
+Q: Does this system support raw HTML/CSS/JS projects?
+-->  Yes! If a user uploads a project that’s already written in plain HTML, CSS, and JS, the Deployment Service can skip the build step and directly serve the files. This makes the system flexible and inclusive of all types of web projects.
+
+
+
+Q: What happens if a user updates their GitHub project?
+-->  They can re-trigger the Upload Service with the updated GitHub URL. The system will fetch the latest code, store it in S3, and initiate a new build and deployment cycle.
+
+
+
+Q: How do we ensure fast access for global users?
+-->  The Request Handler Service uses caching and possibly a CDN (Content Delivery Network) to serve files from locations close to the user. This minimizes latency and ensures a smooth experience.
+
+
+
+Q: Can this system be extended to support other frameworks?
+-->  Absolutely. While React is a common example, the Deployment Service can be adapted to support Vue, Angular, Svelte, or even backend frameworks like Next.js or Nuxt. Each framework has its own build process, but the core idea remains the same: convert code into browser-ready static assets.
