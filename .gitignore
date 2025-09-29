@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 scalara-upload-services/node_modules/
 scalara-request-handler/node_modules
 scalara-deploy-services/node_modules
 frontend/node_modules
+=======
+node_modules/
+>>>>>>> 02310f73c91e7c8d15c1aae018cf2eff1c2145e0
