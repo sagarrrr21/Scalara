@@ -1,7 +1,7 @@
 # Scalara
 
  What This Platform Does
-Imagine a tool that takes your code and turns it into a live website—automatically. That’s what your platform does. It’s built to help developers go from writing code to sharing it with the world, without worrying about servers, configurations, or deployment headaches.
+Imagine a tool that takes your code and turns it into a live website automatically. That’s what your platform does. It’s built to help developers go from writing code to sharing it with the world, without worrying about servers, configurations, or deployment headaches.
 You connect your GitHub project, and the system takes care of everything:
 - It grabs your code.
 - Builds it into something browsers can understand (HTML, CSS, JS).
