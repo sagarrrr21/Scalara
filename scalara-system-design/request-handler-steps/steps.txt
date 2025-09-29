@@ -1,0 +1,56 @@
+Request handler
+ 
+Initialize a Node.js Project, add TS configurations
+npm init -y
+npx tsc --init
+
+Initialize an express server running on port 3001
+import express from "express";
+import { S3 } from "aws-sdk";
+
+const app = express();
+
+app.listen(3000)
+
+Add a global route catch (/*) which handles all requests
+app.get("/*", async (req, res) => {
+   
+})
+
+Extract the sub-domain the request is coming from (id.vercel.com ⇒ id)
+const host = req.hostname;
+const id = host.split(".")[0];
+
+Get the contents from S3 assuming the subdomain represents the id and forward it to the user. Add the correct content-type header to ensure the final file is parsed as a html file.
+import express from "express";
+import { S3 } from "aws-sdk";
+
+const s3 = new S3({
+    accessKeyId: "7ea9c3f8c7f0f26f0d21c5ce99d1ad6a",
+    secretAccessKey: "b4df203781dd711223ce931a2d7ca269cdbf81bb530de4548474584951b798be",
+    endpoint: "https://e21220f4758c0870ba9c388712d42ef2.r2.cloudflarestorage.com"
+})
+
+const app = express();
+
+app.get("/*", async (req, res) => {
+    // id.100xdevs.com
+    const host = req.hostname;
+
+    const id = host.split(".")[0];
+    const filePath = req.path;
+
+    const contents = await s3.getObject({
+        Bucket: "vercel",
+        Key: `dist/${id}${filePath}`
+    }).promise();
+    
+    const type = filePath.endsWith("html") ? "text/html" : filePath.endsWith("css") ? "text/css" : "application/javascript"
+    res.set("Content-Type", type);
+
+    res.send(contents.Body);
+})
+
+app.listen(3001);
+
+ 
